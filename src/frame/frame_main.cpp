@@ -7,6 +7,7 @@
 #include "frame_fileindex.h"
 #include "frame_compare.h"
 #include "frame_home.h"
+#include "frame_glucose.h"
 
 enum {
     kKeyFactoryTest = 0,
@@ -16,7 +17,8 @@ enum {
     kKeySDFile,
     kKeyCompare,
     kKeyHome,
-    kKeyLifeGame
+    kKeyLifeGame,
+    kKeyGlucose
 };
 
 #define KEY_W 92
@@ -98,6 +100,29 @@ void key_home_cb(epdgui_args_vector_t &args) {
     *((int *)(args[0])) = 0;
 }
 
+void key_glucose_cb(epdgui_args_vector_t &args) {
+    Frame_Base *frame = EPDGUI_GetFrame("Frame_Glucose");
+    if (frame == NULL) {
+        frame = new Frame_Glucose();
+        EPDGUI_AddFrame("Frame_Glucose", frame);
+    }
+    EPDGUI_PushFrame(frame);
+    *((int *)(args[0])) = 0;
+}
+
+// list of button_t
+const button_t buttons[] = {
+    {"FactoryTest", ImageResource_main_icon_factorytest_92x92, key_factorytest_cb},
+    {"Setting", ImageResource_main_icon_setting_92x92, key_setting_cb},
+    {"Keyboard", ImageResource_main_icon_keyboard_92x92, key_keyboard_cb},
+    {"WLAN", ImageResource_main_icon_wifi_92x92, key_wifiscan_cb},
+    {"Storage", ImageResource_main_icon_sdcard_92x92, key_sdfile_cb},
+    {"Compare", ImageResource_main_icon_compare_92x92, key_compare_cb},
+    {"Home", ImageResource_main_icon_home_92x92, key_home_cb},
+    {"LifeGame", ImageResource_main_icon_lifegame_92x92, key_lifegame_cb},
+    {"Glucose", ImageResource_main_icon_glucose_92x92, key_glucose_cb}
+};
+
 Frame_Main::Frame_Main(void) : Frame_Base(false) {
     _frame_name = "Frame_Main";
     _frame_id   = 1;
@@ -110,85 +135,23 @@ Frame_Main::Frame_Main(void) : Frame_Base(false) {
     _names->createCanvas(540, 32);
     _names->setTextDatum(CC_DATUM);
 
-    for (int i = 0; i < 4; i++) {
-        _key[i] = new EPDGUI_Button("测试", 20 + i * 136, 90, KEY_W, KEY_H);
+    int num_buttons = sizeof(buttons) / sizeof(button_t);
+
+    log_d("num_buttons: %d", num_buttons);
+
+    for (int i = 0; i < num_buttons; i++) {
+        int row = i / 4; // Calculate the row of the button (0 for the first four, 1 for the next four)
+        int col = i % 4; // Calculate the column of the button (0 to 3)
+        int x_position = 20 + col * 136;
+        int y_position = 90 + row * 150;
+        log_d("button: %d - row: %d, col: %d | x: %d, y: %d", i, row, col, x_position, y_position);
+        _key[i] = new EPDGUI_Button(buttons[i].label, x_position, y_position, KEY_W, KEY_H);
+        _key[i]->CanvasNormal()->pushImage(0, 0, KEY_W, KEY_H, buttons[i].icon);
+        *(_key[i]->CanvasPressed()) = *(_key[i]->CanvasNormal());
+        _key[i]->CanvasPressed()->ReverseColor();
+        _key[i]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0, (void *)(&_is_run));
+        _key[i]->Bind(EPDGUI_Button::EVENT_RELEASED, buttons[i].callback);
     }
-
-    for (int i = 0; i < 4; i++) {
-        _key[i + 4] =
-            new EPDGUI_Button("测试", 20 + i * 136, 240, KEY_W, KEY_H);
-    }
-
-    _key[kKeySetting]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_setting_92x92);
-    *(_key[kKeySetting]->CanvasPressed()) =
-        *(_key[kKeySetting]->CanvasNormal());
-    _key[kKeySetting]->CanvasPressed()->ReverseColor();
-    _key[kKeySetting]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                               (void *)(&_is_run));
-    _key[kKeySetting]->Bind(EPDGUI_Button::EVENT_RELEASED, key_setting_cb);
-
-    _key[kKeyKeyboard]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_keyboard_92x92);
-    *(_key[kKeyKeyboard]->CanvasPressed()) =
-        *(_key[kKeyKeyboard]->CanvasNormal());
-    _key[kKeyKeyboard]->CanvasPressed()->ReverseColor();
-    _key[kKeyKeyboard]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                                (void *)(&_is_run));
-    _key[kKeyKeyboard]->Bind(EPDGUI_Button::EVENT_RELEASED, key_keyboard_cb);
-
-    _key[kKeyFactoryTest]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_factorytest_92x92);
-    *(_key[kKeyFactoryTest]->CanvasPressed()) =
-        *(_key[kKeyFactoryTest]->CanvasNormal());
-    _key[kKeyFactoryTest]->CanvasPressed()->ReverseColor();
-    _key[kKeyFactoryTest]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                                   (void *)(&_is_run));
-    _key[kKeyFactoryTest]->Bind(EPDGUI_Button::EVENT_RELEASED,
-                                key_factorytest_cb);
-
-    _key[kKeyWifiScan]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_wifi_92x92);
-    *(_key[kKeyWifiScan]->CanvasPressed()) =
-        *(_key[kKeyWifiScan]->CanvasNormal());
-    _key[kKeyWifiScan]->CanvasPressed()->ReverseColor();
-    _key[kKeyWifiScan]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                                (void *)(&_is_run));
-    _key[kKeyWifiScan]->Bind(EPDGUI_Button::EVENT_RELEASED, key_wifiscan_cb);
-
-    _key[kKeyLifeGame]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_lifegame_92x92);
-    *(_key[kKeyLifeGame]->CanvasPressed()) =
-        *(_key[kKeyLifeGame]->CanvasNormal());
-    _key[kKeyLifeGame]->CanvasPressed()->ReverseColor();
-    _key[kKeyLifeGame]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                                (void *)(&_is_run));
-    _key[kKeyLifeGame]->Bind(EPDGUI_Button::EVENT_RELEASED, key_lifegame_cb);
-
-    _key[kKeySDFile]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_sdcard_92x92);
-    *(_key[kKeySDFile]->CanvasPressed()) = *(_key[kKeySDFile]->CanvasNormal());
-    _key[kKeySDFile]->CanvasPressed()->ReverseColor();
-    _key[kKeySDFile]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                              (void *)(&_is_run));
-    _key[kKeySDFile]->Bind(EPDGUI_Button::EVENT_RELEASED, key_sdfile_cb);
-
-    _key[kKeyCompare]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_compare_92x92);
-    *(_key[kKeyCompare]->CanvasPressed()) =
-        *(_key[kKeyCompare]->CanvasNormal());
-    _key[kKeyCompare]->CanvasPressed()->ReverseColor();
-    _key[kKeyCompare]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                               (void *)(&_is_run));
-    _key[kKeyCompare]->Bind(EPDGUI_Button::EVENT_RELEASED, key_compare_cb);
-
-    _key[kKeyHome]->CanvasNormal()->pushImage(
-        0, 0, 92, 92, ImageResource_main_icon_home_92x92);
-    *(_key[kKeyHome]->CanvasPressed()) = *(_key[kKeyHome]->CanvasNormal());
-    _key[kKeyHome]->CanvasPressed()->ReverseColor();
-    _key[kKeyHome]->AddArgs(EPDGUI_Button::EVENT_RELEASED, 0,
-                            (void *)(&_is_run));
-    _key[kKeyHome]->Bind(EPDGUI_Button::EVENT_RELEASED, key_home_cb);
 
     _time             = 0;
     _next_update_time = 0;
@@ -201,46 +164,30 @@ Frame_Main::~Frame_Main(void) {
 }
 
 void Frame_Main::AppName(m5epd_update_mode_t mode) {
+    const int iconsPerRow = 4;
+    const int iconWidth = 136;
+    const int xOffset = 20 + 46;
+    const int yOffset = 16;
+    const int rowHeight = 151; // Adjust as needed for the height of each row
+
+    int totalRows = (sizeof(buttons) / sizeof(button_t) + iconsPerRow - 1) / iconsPerRow;
+
     if (!_names->isRenderExist(20)) {
         _names->createRender(20, 26);
     }
     _names->setTextSize(20);
-    _names->fillCanvas(0);
-    uint8_t language = GetLanguage();
-    _names->drawString("WLAN", 20 + 46 + 3 * 136, 16);
-    if (language == LANGUAGE_JA) {
-        _names->drawString("工場テスト", 20 + 46, 16);
-        _names->drawString("設定", 20 + 46 + 136, 16);
-        _names->drawString("鍵盤", 20 + 46 + 2 * 136, 16);
-    } else if (language == LANGUAGE_ZH) {
-        _names->drawString("出厂测试", 20 + 46, 16);
-        _names->drawString("设定", 20 + 46 + 136, 16);
-        _names->drawString("键盘", 20 + 46 + 2 * 136, 16);
-    } else {
-        _names->drawString("Test", 20 + 46, 16);
-        _names->drawString("Setting", 20 + 46 + 136, 16);
-        _names->drawString("Keyboard", 20 + 46 + 2 * 136, 16);
-    }
-    _names->pushCanvas(0, 186, mode);
 
-    _names->fillCanvas(0);
-    if (language == LANGUAGE_JA) {
-        _names->drawString("メモリー", 20 + 46, 16);
-        _names->drawString("刷新比較", 20 + 46 + 136, 16);
-        _names->drawString("家", 20 + 46 + 2 * 136, 16);
-        _names->drawString("ライフゲーム", 20 + 46 + 3 * 136, 16);
-    } else if (language == LANGUAGE_ZH) {
-        _names->drawString("存储", 20 + 46, 16);
-        _names->drawString("刷新比较", 20 + 46 + 136, 16);
-        _names->drawString("家", 20 + 46 + 2 * 136, 16);
-        _names->drawString("生命游戏", 20 + 46 + 3 * 136, 16);
-    } else {
-        _names->drawString("Storage", 20 + 46, 16);
-        _names->drawString("Compare", 20 + 46 + 136, 16);
-        _names->drawString("Home", 20 + 46 + 2 * 136, 16);
-        _names->drawString("LifeGame", 20 + 46 + 3 * 136, 16);
+    for (int row = 0; row < totalRows; ++row) {
+        _names->fillCanvas(0);
+        for (int col = 0; col < iconsPerRow; ++col) {
+            int index = row * iconsPerRow + col;
+            if (index < sizeof(buttons) / sizeof(button_t)) {
+                int xPosition = xOffset + col * iconWidth;
+                _names->drawString(buttons[index].label, xPosition, yOffset);
+            }
+        }
+        _names->pushCanvas(0, 186 + row * rowHeight, mode);
     }
-    _names->pushCanvas(0, 337, mode);
 }
 
 void Frame_Main::StatusBar(m5epd_update_mode_t mode) {
@@ -294,7 +241,8 @@ void Frame_Main::StatusBar(m5epd_update_mode_t mode) {
 int Frame_Main::init(epdgui_args_vector_t &args) {
     _is_run = 1;
     M5.EPD.WriteFullGram4bpp(GetWallpaper());
-    for (int i = 0; i < 8; i++) {
+    int num_buttons = sizeof(buttons) / sizeof(button_t);
+    for (int i = 0; i < num_buttons; i++) {
         EPDGUI_AddObject(_key[i]);
     }
     _time             = 0;

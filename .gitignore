@@ -33,3 +33,7 @@
 
 .pio
 .vscode
+.espressif
+.envrc
+
+temp.*

@@ -1,0 +1,1 @@
+python -m platformio device monitor -f esp32_exception_decoder
